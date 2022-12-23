@@ -4,7 +4,7 @@ using WebApi.Entities;
 
 namespace WebApi.Storage;
 
-public class TestAdd : IAddEntity<TestEntity>
+public class TestAdd : IAdd<TestEntity, string>
 {
     public TestEntity Add(TestEntity entity)
     {

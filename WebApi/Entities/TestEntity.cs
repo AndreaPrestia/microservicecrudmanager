@@ -1,6 +1,8 @@
-﻿namespace WebApi.Entities;
+﻿using MicroservicesCrudManager.Core.Interfaces;
 
-public class TestEntity
+namespace WebApi.Entities;
+
+public class TestEntity : IHasId<string>
 {
     public string Id { get; set; }
     public string Name { get; set; }

@@ -1,4 +1,5 @@
 using MicroservicesCrudManager.Core;
+using Microsoft.AspNetCore.Mvc;
 using WebApi.Storage;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -24,6 +25,28 @@ app.MapPost("/api/v1/{entity}",
             var result = storageManager.ActivateAdd(entity, payload);
 
             return Results.Created($"/api/v1/{entity}", result);
+        }
+        catch (Exception ex)
+        {
+            if (ex is ArgumentException)
+            {
+                return Results.BadRequest(ex.Message);
+            }
+
+            return Results.Problem(detail: ex.Message, statusCode: StatusCodes.Status500InternalServerError);
+        }
+    });
+
+app.MapPut("/api/v1/{entity}",
+    (HttpContext httpContext, StorageManager storageManager, string entity) =>
+    {
+        try
+        {
+            var payload = httpContext.Request.Body.Deserialize(entity);
+
+            var result = storageManager.ActivateUpdate(entity, payload);
+
+            return Results.Ok(result);
         }
         catch (Exception ex)
         {
