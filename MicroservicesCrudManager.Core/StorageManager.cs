@@ -3,7 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace MicroservicesCrudManager.Core;
 
-public class StorageManager
+public sealed class StorageManager
 {
     private readonly IServiceProvider _serviceProvider;
 
@@ -32,7 +32,7 @@ public class StorageManager
 
         if (addType == null)
         {
-            throw new InvalidOperationException($"No IAddEntity<entity> implementation found");
+            throw new InvalidOperationException($"No IAdd<{entity}> implementation found");
         }
 
         var addService = GetService(addType);
@@ -61,13 +61,18 @@ public class StorageManager
         return result;
     }
 
-    public object? ActivateUpdate(string entity, object? payload)
+    public object? ActivateUpdate(string entity, string id, object? payload)
     {
         if (entity == null) throw new ArgumentNullException(nameof(entity));
 
+        if (string.IsNullOrWhiteSpace(id))
+        {
+            throw new ArgumentNullException($"No id provided in /api/v1/{entity}/?id= PUT");
+        }
+
         if (payload == null)
         {
-            throw new ArgumentNullException($"No payload provided in /api/v1/{entity}/?key= PUT");
+            throw new ArgumentNullException($"No payload provided in /api/v1/{entity}/?id= PUT");
         }
 
         var entityType = GetEntityType(entity);
@@ -77,38 +82,191 @@ public class StorageManager
             throw new InvalidOperationException($"Entity {entity} invalid");
         }
 
-        var addType = GetUpdateType(entityType);
+        var type = GetUpdateType(entityType);
 
-        if (addType == null)
+        if (type == null)
         {
-            throw new InvalidOperationException($"No IAddEntity<entity> implementation found");
+            throw new InvalidOperationException($"No IUpdate<{entity}> implementation found");
         }
 
-        var updateService = GetService(addType);
+        var service = GetService(type);
 
-        if (updateService == null)
+        if (service == null)
         {
-            throw new ArgumentNullException(nameof(updateService));
+            throw new ArgumentNullException(nameof(service));
         }
 
-        var updateMethod = updateService.GetType().GetMethods().Where(t => t.Name.Equals("Update")
-                                                                           && t.ReturnParameter.ParameterType.Name
-                                                                               .Equals(
-                                                                                   entity)
-                                                                           && t.GetParameters().Length == 1 &&
-                                                                           t.GetParameters().FirstOrDefault()!
-                                                                               .ParameterType
-                                                                               .Name.Equals(entity)
+        var method = service.GetType().GetMethods().Where(t => t.Name.Equals("Update")
+                                                               && t.ReturnParameter.ParameterType.Name
+                                                                   .Equals(
+                                                                       entity)
+                                                               && t.GetParameters().Length == 1 &&
+                                                               t.GetParameters().FirstOrDefault()!
+                                                                   .ParameterType
+                                                                   .Name.Equals(entity)
             ).Select(x => x)
             .FirstOrDefault();
 
-        if (updateMethod == null)
+        if (method == null)
         {
             throw new EntryPointNotFoundException(
                 $"No implementation of method {entity} Update({entity} entity)");
         }
 
-        var result = updateMethod.Invoke(updateMethod, new[] { payload });
+        var result = method.Invoke(method, new[] { id, payload });
+
+        return result;
+    }
+
+    public object? ActivateGet(string entity, string id)
+    {
+        if (entity == null) throw new ArgumentNullException(nameof(entity));
+
+        if (string.IsNullOrWhiteSpace(id))
+        {
+            throw new ArgumentNullException($"No id provided in /api/v1/{entity}/?id= PUT");
+        }
+
+        var entityType = GetEntityType(entity);
+
+        if (entityType == null)
+        {
+            throw new InvalidOperationException($"Entity {entity} invalid");
+        }
+
+        var type = GetGetType(entityType);
+
+        if (type == null)
+        {
+            throw new InvalidOperationException($"No IGet<{entity}> implementation found");
+        }
+
+        var service = GetService(type);
+
+        if (service == null)
+        {
+            throw new ArgumentNullException(nameof(service));
+        }
+
+        var method = service.GetType().GetMethods().Where(t => t.Name.Equals("Get")
+                                                               && t.ReturnParameter.ParameterType.Name
+                                                                   .Equals(
+                                                                       entity)
+                                                               && t.GetParameters().Length == 1 &&
+                                                               t.GetParameters().FirstOrDefault()!
+                                                                   .ParameterType
+                                                                   .Name.Equals(entity)
+            ).Select(x => x)
+            .FirstOrDefault();
+
+        if (method == null)
+        {
+            throw new EntryPointNotFoundException(
+                $"No implementation of method {entity} Get({entity} entity)");
+        }
+
+        var result = method.Invoke(method, new[] { id });
+
+        return result;
+    }
+
+    public object? ActivateList(string entity, int page = 0, int limit = 10, string? query = null,
+        string? orderBy = null, bool ascending = false)
+    {
+        if (entity == null) throw new ArgumentNullException(nameof(entity));
+
+        var entityType = GetEntityType(entity);
+
+        if (entityType == null)
+        {
+            throw new InvalidOperationException($"Entity {entity} invalid");
+        }
+
+        var type = GetListType(entityType);
+
+        if (type == null)
+        {
+            throw new InvalidOperationException($"No IList<{entity}> implementation found");
+        }
+
+        var service = GetService(type);
+
+        if (service == null)
+        {
+            throw new ArgumentNullException(nameof(service));
+        }
+
+        var method = service.GetType().GetMethods().Where(t => t.Name.Equals("List")
+                                                               && t.ReturnParameter.ParameterType.Name
+                                                                   .Equals(
+                                                                       entity)
+                                                               && t.GetParameters().Length == 1 &&
+                                                               t.GetParameters().FirstOrDefault()!
+                                                                   .ParameterType
+                                                                   .Name.Equals(entity)
+            ).Select(x => x)
+            .FirstOrDefault();
+
+        if (method == null)
+        {
+            throw new EntryPointNotFoundException(
+                $"No implementation of method List<{entity}> List({entity} entity)");
+        }
+
+        var result = method.Invoke(method, new object?[] { page, limit, query, orderBy, ascending });
+
+        return result;
+    }
+
+
+    public object? ActivateDelete(string entity, string id)
+    {
+        if (entity == null) throw new ArgumentNullException(nameof(entity));
+
+        if (string.IsNullOrWhiteSpace(id))
+        {
+            throw new ArgumentNullException($"No id provided in /api/v1/{entity}/?id= DELETE");
+        }
+
+        var entityType = GetEntityType(entity);
+
+        if (entityType == null)
+        {
+            throw new InvalidOperationException($"Entity {entity} invalid");
+        }
+
+        var addType = GetDeleteType(entityType);
+
+        if (addType == null)
+        {
+            throw new InvalidOperationException($"No IDelete<{entity}> implementation found");
+        }
+
+        var service = GetService(addType);
+
+        if (service == null)
+        {
+            throw new ArgumentNullException(nameof(service));
+        }
+
+        var method = service.GetType().GetMethods().Where(t => t.Name.Equals("Delete")
+                                                               && t.ReturnParameter.ParameterType.Name
+                                                                   .Equals(
+                                                                       entity)
+                                                               && t.GetParameters().Length == 1 &&
+                                                               t.GetParameters().FirstOrDefault()!
+                                                                   .ParameterType
+                                                                   .Name.Equals(entity)
+            ).Select(x => x)
+            .FirstOrDefault();
+
+        if (method == null)
+        {
+            throw new EntryPointNotFoundException(
+                $"No implementation of method {entity} Delete({entity} entity)");
+        }
+
+        var result = method.Invoke(method, new object?[] { id });
 
         return result;
     }
@@ -129,7 +287,7 @@ public class StorageManager
                 t.GetInterfaces().Contains(constructed) && !t.IsAbstract && !t.IsInterface).Select(t =>
                 t).FirstOrDefault()!;
     }
-    
+
     private Type GetListType(Type entityType)
     {
         var constructed = typeof(IList<,>).MakeGenericType(entityType);
@@ -139,7 +297,7 @@ public class StorageManager
                 t.GetInterfaces().Contains(constructed) && !t.IsAbstract && !t.IsInterface).Select(t =>
                 t).FirstOrDefault()!;
     }
-    
+
     private Type GetGetType(Type entityType)
     {
         var constructed = typeof(IGet<,>).MakeGenericType(entityType);
@@ -149,7 +307,7 @@ public class StorageManager
                 t.GetInterfaces().Contains(constructed) && !t.IsAbstract && !t.IsInterface).Select(t =>
                 t).FirstOrDefault()!;
     }
-    
+
     private Type GetDeleteType(Type entityType)
     {
         var constructed = typeof(IDelete<,>).MakeGenericType(entityType);

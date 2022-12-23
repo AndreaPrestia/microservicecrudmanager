@@ -15,47 +15,100 @@ app.MapPost("/api/v1/{entity}",
     {
         try
         {
-            var payload = httpContext.Request.Body.Deserialize(entity);
-
-            if (payload == null)
-            {
-                throw new ArgumentNullException($"No payload provided in /api/v1/{entity} POST");
-            }
-
-            var result = storageManager.ActivateAdd(entity, payload);
+            var result = storageManager.ActivateAdd(entity, httpContext.Request.Body.Deserialize(entity));
 
             return Results.Created($"/api/v1/{entity}", result);
         }
         catch (Exception ex)
         {
-            if (ex is ArgumentException)
+            return ex switch
             {
-                return Results.BadRequest(ex.Message);
-            }
-
-            return Results.Problem(detail: ex.Message, statusCode: StatusCodes.Status500InternalServerError);
+                ArgumentException => Results.BadRequest(ex.Message),
+                EntryPointNotFoundException => Results.NotFound(ex.Message),
+                _ => Results.Problem(detail: ex.Message, statusCode: StatusCodes.Status500InternalServerError)
+            };
         }
     });
 
-app.MapPut("/api/v1/{entity}",
-    (HttpContext httpContext, StorageManager storageManager, string entity) =>
+app.MapPut("/api/v1/{entity}/{id}",
+    (HttpContext httpContext, StorageManager storageManager, string entity, string id) =>
     {
         try
         {
-            var payload = httpContext.Request.Body.Deserialize(entity);
-
-            var result = storageManager.ActivateUpdate(entity, payload);
+            var result = storageManager.ActivateUpdate(entity, id, httpContext.Request.Body.Deserialize(entity));
 
             return Results.Ok(result);
         }
         catch (Exception ex)
         {
-            if (ex is ArgumentException)
+            return ex switch
             {
-                return Results.BadRequest(ex.Message);
-            }
+                ArgumentException => Results.BadRequest(ex.Message),
+                EntryPointNotFoundException => Results.NotFound(ex.Message),
+                _ => Results.Problem(detail: ex.Message, statusCode: StatusCodes.Status500InternalServerError)
+            };
+        }
+    });
 
-            return Results.Problem(detail: ex.Message, statusCode: StatusCodes.Status500InternalServerError);
+app.MapDelete("/api/v1/{entity}/{id}",
+    (HttpContext httpContext, StorageManager storageManager, string entity, string id) =>
+    {
+        try
+        {
+            var result = storageManager.ActivateDelete(entity, id);
+
+            return Results.Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return ex switch
+            {
+                ArgumentException => Results.BadRequest(ex.Message),
+                EntryPointNotFoundException => Results.NotFound(ex.Message),
+                _ => Results.Problem(detail: ex.Message, statusCode: StatusCodes.Status500InternalServerError)
+            };
+        }
+    });
+
+app.MapGet("/api/v1/{entity}/{id}",
+    (HttpContext httpContext, StorageManager storageManager, string entity, string id) =>
+    {
+        try
+        {
+            var result = storageManager.ActivateGet(entity, id);
+
+            return Results.Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return ex switch
+            {
+                ArgumentException => Results.BadRequest(ex.Message),
+                EntryPointNotFoundException => Results.NotFound(ex.Message),
+                _ => Results.Problem(detail: ex.Message, statusCode: StatusCodes.Status500InternalServerError)
+            };
+        }
+    });
+
+
+app.MapGet("/api/v1/{entity}/{page:int}/{limit:int}/{query}/{orderBy}/{ascending:bool}",
+    (HttpContext httpContext, StorageManager storageManager, string entity, int page, int limit, string query,
+        string orderBy, bool ascending) =>
+    {
+        try
+        {
+            var result = storageManager.ActivateList(entity, page, limit, query, orderBy, ascending);
+
+            return Results.Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return ex switch
+            {
+                ArgumentException => Results.BadRequest(ex.Message),
+                EntryPointNotFoundException => Results.NotFound(ex.Message),
+                _ => Results.Problem(detail: ex.Message, statusCode: StatusCodes.Status500InternalServerError)
+            };
         }
     });
 
