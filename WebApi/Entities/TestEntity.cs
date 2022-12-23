@@ -1,9 +1,8 @@
-﻿using MicroservicesCrudManager.Core.Interfaces;
+﻿using MicroservicesCrudManager.Core;
 
 namespace WebApi.Entities;
 
-public class TestEntity : IHasId<string>
+public class TestEntity : BaseEntity<string>
 {
-    public string Id { get; set; }
     public string Name { get; set; }
 }
