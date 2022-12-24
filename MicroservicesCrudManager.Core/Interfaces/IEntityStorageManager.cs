@@ -2,4 +2,5 @@
 
 public interface IEntityStorageManager<T, T1> where T : BaseEntity<T1>
 {
+    public string Roles { get; }
 }
