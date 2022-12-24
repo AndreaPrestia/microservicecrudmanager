@@ -280,7 +280,9 @@ public sealed class StorageManager
 
     private Type GetAddType(Type entityType)
     {
-        var constructed = typeof(IAdd<,>).MakeGenericType(entityType);
+        var typeOfId = entityType.GetProperty("Id").PropertyType;
+        
+        var constructed = typeof(IAdd<,>).MakeGenericType(entityType, typeOfId);
 
         return AppDomain.CurrentDomain.GetAssemblies()
             .First(x => x.GetName().Name == AppDomain.CurrentDomain.FriendlyName).GetTypes().Where(t =>
@@ -290,7 +292,9 @@ public sealed class StorageManager
 
     private Type GetListType(Type entityType)
     {
-        var constructed = typeof(IList<,>).MakeGenericType(entityType);
+        var typeOfId = entityType.GetProperty("Id").PropertyType;
+
+        var constructed = typeof(IList<,>).MakeGenericType(entityType, typeOfId);
 
         return AppDomain.CurrentDomain.GetAssemblies()
             .First(x => x.GetName().Name == AppDomain.CurrentDomain.FriendlyName).GetTypes().Where(t =>
@@ -300,7 +304,9 @@ public sealed class StorageManager
 
     private Type GetGetType(Type entityType)
     {
-        var constructed = typeof(IGet<,>).MakeGenericType(entityType);
+        var typeOfId = entityType.GetProperty("Id").PropertyType;
+
+        var constructed = typeof(IGet<,>).MakeGenericType(entityType, typeOfId);
 
         return AppDomain.CurrentDomain.GetAssemblies()
             .First(x => x.GetName().Name == AppDomain.CurrentDomain.FriendlyName).GetTypes().Where(t =>
@@ -310,7 +316,9 @@ public sealed class StorageManager
 
     private Type GetDeleteType(Type entityType)
     {
-        var constructed = typeof(IDelete<,>).MakeGenericType(entityType);
+        var typeOfId = entityType.GetProperty("Id").PropertyType;
+
+        var constructed = typeof(IDelete<,>).MakeGenericType(entityType, typeOfId);
 
         return AppDomain.CurrentDomain.GetAssemblies()
             .First(x => x.GetName().Name == AppDomain.CurrentDomain.FriendlyName).GetTypes().Where(t =>
@@ -320,7 +328,9 @@ public sealed class StorageManager
 
     private Type GetUpdateType(Type entityType)
     {
-        var constructed = typeof(IUpdate<,>).MakeGenericType(entityType);
+        var typeOfId = entityType.GetProperty("Id").PropertyType;
+
+        var constructed = typeof(IUpdate<,>).MakeGenericType(entityType, typeOfId);
 
         return AppDomain.CurrentDomain.GetAssemblies()
             .First(x => x.GetName().Name == AppDomain.CurrentDomain.FriendlyName).GetTypes().Where(t =>

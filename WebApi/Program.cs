@@ -1,5 +1,4 @@
 using MicroservicesCrudManager.Core;
-using Microsoft.AspNetCore.Mvc;
 using WebApi.Storage;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -11,7 +10,7 @@ var app = builder.Build();
 app.MapGet("/", () => "Hello World!");
 
 app.MapPost("/api/v1/{entity}",
-    (HttpContext httpContext, StorageManager storageManager, string entity) =>
+    (HttpContext httpContext,  StorageManager storageManager, string entity) =>
     {
         try
         {
