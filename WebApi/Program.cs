@@ -14,7 +14,7 @@ app.MapPost("/api/v1/{entity}",
     {
         try
         {
-            var result = storageManager.ActivateAdd(entity, httpContext.Request.Body.Deserialize(entity));
+            var result = storageManager.ActivateAdd(entity, httpContext.Request.Body.Deserialize(entity), httpContext.User);
 
             return Results.Created($"/api/v1/{entity}", result);
         }
@@ -34,7 +34,7 @@ app.MapPut("/api/v1/{entity}/{id}",
     {
         try
         {
-            var result = storageManager.ActivateUpdate(entity, id, httpContext.Request.Body.Deserialize(entity));
+            var result = storageManager.ActivateUpdate(entity, id, httpContext.Request.Body.Deserialize(entity), httpContext.User);
 
             return Results.Ok(result);
         }
@@ -54,7 +54,7 @@ app.MapDelete("/api/v1/{entity}/{id}",
     {
         try
         {
-            var result = storageManager.ActivateDelete(entity, id);
+            var result = storageManager.ActivateDelete(entity, id, httpContext.User);
 
             return Results.Ok(result);
         }
@@ -74,7 +74,7 @@ app.MapGet("/api/v1/{entity}/{id}",
     {
         try
         {
-            var result = storageManager.ActivateGet(entity, id);
+            var result = storageManager.ActivateGet(entity, id, httpContext.User);
 
             return Results.Ok(result);
         }
@@ -96,7 +96,7 @@ app.MapGet("/api/v1/{entity}/{page:int}/{limit:int}/{query}/{orderBy}/{ascending
     {
         try
         {
-            var result = storageManager.ActivateList(entity, page, limit, query, orderBy, ascending);
+            var result = storageManager.ActivateList(entity, httpContext.User, page, limit, query, orderBy, ascending);
 
             return Results.Ok(result);
         }

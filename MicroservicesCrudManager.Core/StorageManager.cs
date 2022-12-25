@@ -1,4 +1,5 @@
-﻿using MicroservicesCrudManager.Core.Interfaces;
+﻿using System.Security.Claims;
+using MicroservicesCrudManager.Core.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace MicroservicesCrudManager.Core;
@@ -12,7 +13,7 @@ public sealed class StorageManager
         _serviceProvider = serviceProvider;
     }
 
-    public object? ActivateAdd(string entity, object? payload)
+    public object? ActivateAdd(string entity, object? payload, ClaimsPrincipal claimsPrincipal)
     {
         if (entity == null) throw new ArgumentNullException(nameof(entity));
 
@@ -35,19 +36,35 @@ public sealed class StorageManager
             throw new InvalidOperationException($"No IAdd<{entity}> implementation found");
         }
 
-        var addService = GetService(addType);
+        var service = GetService(addType);
 
-        if (addService == null)
+        if (service == null)
         {
-            throw new ArgumentNullException(nameof(addService));
+            throw new ArgumentNullException(nameof(service));
+        }
+        var rolesProperty = service.GetType().GetProperty("Roles");
+
+        if (rolesProperty == null)
+        {
+            throw new InvalidOperationException($"No Roles property found in add for entity {entity}");
         }
 
-        var addMethod = addService.GetType().GetMethods().Where(t => t.Name.Equals("Add")
-                                                                     && t.ReturnParameter.ParameterType.Name.Equals(
-                                                                         entity)
-                                                                     && t.GetParameters().Length == 1 &&
-                                                                     t.GetParameters().FirstOrDefault()!.ParameterType
-                                                                         .Name.Equals(entity)
+        var roles = rolesProperty.GetValue(rolesProperty, null);
+
+        if (roles != null)
+        {
+            if (!claimsPrincipal.IsInRole(roles.ToString()))
+            {
+                throw new UnauthorizedAccessException($"Not authorized to entity {entity} Add");
+            }
+        }
+
+        var addMethod = service.GetType().GetMethods().Where(t => t.Name.Equals("Add")
+                                                                  && t.ReturnParameter.ParameterType.Name.Equals(
+                                                                      entity)
+                                                                  && t.GetParameters().Length == 1 &&
+                                                                  t.GetParameters().FirstOrDefault()!.ParameterType
+                                                                      .Name.Equals(entity)
             ).Select(x => x)
             .FirstOrDefault();
 
@@ -56,12 +73,14 @@ public sealed class StorageManager
             throw new EntryPointNotFoundException($"No implementation of method {entity} Add({entity} entity)");
         }
 
-        var result = addMethod.Invoke(addService, new[] { payload });
+       
+
+        var result = addMethod.Invoke(service, new[] { payload });
 
         return result;
     }
 
-    public object? ActivateUpdate(string entity, string id, object? payload)
+    public object? ActivateUpdate(string entity, string id, object? payload, ClaimsPrincipal claimsPrincipal)
     {
         if (entity == null) throw new ArgumentNullException(nameof(entity));
 
@@ -96,6 +115,23 @@ public sealed class StorageManager
             throw new ArgumentNullException(nameof(service));
         }
 
+        var rolesProperty = service.GetType().GetProperty("Roles");
+
+        if (rolesProperty == null)
+        {
+            throw new InvalidOperationException($"No Roles property found in update for entity {entity}");
+        }
+
+        var roles = rolesProperty.GetValue(rolesProperty, null);
+
+        if (roles != null)
+        {
+            if (!claimsPrincipal.IsInRole(roles.ToString()))
+            {
+                throw new UnauthorizedAccessException($"Not authorized to entity {entity} Update");
+            }
+        }
+
         var method = service.GetType().GetMethods().Where(t => t.Name.Equals("Update")
                                                                && t.ReturnParameter.ParameterType.Name
                                                                    .Equals(
@@ -118,7 +154,7 @@ public sealed class StorageManager
         return result;
     }
 
-    public object? ActivateGet(string entity, string id)
+    public object? ActivateGet(string entity, string id, ClaimsPrincipal claimsPrincipal)
     {
         if (entity == null) throw new ArgumentNullException(nameof(entity));
 
@@ -147,6 +183,23 @@ public sealed class StorageManager
         {
             throw new ArgumentNullException(nameof(service));
         }
+        
+        var rolesProperty = service.GetType().GetProperty("Roles");
+
+        if (rolesProperty == null)
+        {
+            throw new InvalidOperationException($"No Roles property found in update for entity {entity}");
+        }
+
+        var roles = rolesProperty.GetValue(rolesProperty, null);
+
+        if (roles != null)
+        {
+            if (!claimsPrincipal.IsInRole(roles.ToString()))
+            {
+                throw new UnauthorizedAccessException($"Not authorized to entity {entity} Updated");
+            }
+        }
 
         var method = service.GetType().GetMethods().Where(t => t.Name.Equals("Get")
                                                                && t.ReturnParameter.ParameterType.Name
@@ -170,7 +223,7 @@ public sealed class StorageManager
         return result;
     }
 
-    public object? ActivateList(string entity, int page = 0, int limit = 10, string? query = null,
+    public object? ActivateList(string entity, ClaimsPrincipal claimsPrincipal, int page = 0, int limit = 10, string? query = null,
         string? orderBy = null, bool ascending = false)
     {
         if (entity == null) throw new ArgumentNullException(nameof(entity));
@@ -196,6 +249,23 @@ public sealed class StorageManager
             throw new ArgumentNullException(nameof(service));
         }
 
+        var rolesProperty = service.GetType().GetProperty("Roles");
+
+        if (rolesProperty == null)
+        {
+            throw new InvalidOperationException($"No Roles property found in list for entity {entity}");
+        }
+
+        var roles = rolesProperty.GetValue(rolesProperty, null);
+
+        if (roles != null)
+        {
+            if (!claimsPrincipal.IsInRole(roles.ToString()))
+            {
+                throw new UnauthorizedAccessException($"Not authorized to entity {entity} List");
+            }
+        }
+        
         var method = service.GetType().GetMethods().Where(t => t.Name.Equals("List")
                                                                && t.ReturnParameter.ParameterType.Name
                                                                    .Equals(
@@ -219,7 +289,7 @@ public sealed class StorageManager
     }
 
 
-    public object? ActivateDelete(string entity, string id)
+    public object? ActivateDelete(string entity, string id, ClaimsPrincipal claimsPrincipal)
     {
         if (entity == null) throw new ArgumentNullException(nameof(entity));
 
@@ -247,6 +317,23 @@ public sealed class StorageManager
         if (service == null)
         {
             throw new ArgumentNullException(nameof(service));
+        }
+        
+        var rolesProperty = service.GetType().GetProperty("Roles");
+
+        if (rolesProperty == null)
+        {
+            throw new InvalidOperationException($"No Roles property found in delete for entity {entity}");
+        }
+
+        var roles = rolesProperty.GetValue(rolesProperty, null);
+
+        if (roles != null)
+        {
+            if (!claimsPrincipal.IsInRole(roles.ToString()))
+            {
+                throw new UnauthorizedAccessException($"Not authorized to entity {entity} Delete");
+            }
         }
 
         var method = service.GetType().GetMethods().Where(t => t.Name.Equals("Delete")
