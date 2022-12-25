@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using System.ComponentModel.DataAnnotations;
+using System.Text.Json;
 
 namespace MicroservicesCrudManager.Core;
 
@@ -24,6 +25,15 @@ public static class JsonDeserializer
 
         var json = new StreamReader(stream).ReadToEndAsync().Result;
 
-        return JsonSerializer.Deserialize(json, entityType, Options);
+        var deserialized = JsonSerializer.Deserialize(json, entityType, Options);
+
+        if (deserialized == null)
+        {
+            throw new ArgumentNullException($"Invalid payload for entity {entity}");
+        }
+        
+        Validator.ValidateObject(deserialized, new ValidationContext(deserialized));
+        
+        return deserialized;
     }
 }
