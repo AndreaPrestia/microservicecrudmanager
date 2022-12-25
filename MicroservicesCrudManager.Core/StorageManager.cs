@@ -42,14 +42,8 @@ public sealed class StorageManager
         {
             throw new ArgumentNullException(nameof(service));
         }
-        var rolesProperty = service.GetType().GetProperty("Roles");
 
-        if (rolesProperty == null)
-        {
-            throw new InvalidOperationException($"No Roles property found in add for entity {entity}");
-        }
-
-        var roles = rolesProperty.GetValue(rolesProperty, null);
+        var roles = GetPropertyValue(service, "Roles");
 
         if (roles != null)
         {
@@ -72,8 +66,6 @@ public sealed class StorageManager
         {
             throw new EntryPointNotFoundException($"No implementation of method {entity} Add({entity} entity)");
         }
-
-       
 
         var result = addMethod.Invoke(service, new[] { payload });
 
@@ -115,14 +107,7 @@ public sealed class StorageManager
             throw new ArgumentNullException(nameof(service));
         }
 
-        var rolesProperty = service.GetType().GetProperty("Roles");
-
-        if (rolesProperty == null)
-        {
-            throw new InvalidOperationException($"No Roles property found in update for entity {entity}");
-        }
-
-        var roles = rolesProperty.GetValue(rolesProperty, null);
+        var roles = GetPropertyValue(service, "Roles");
 
         if (roles != null)
         {
@@ -184,14 +169,7 @@ public sealed class StorageManager
             throw new ArgumentNullException(nameof(service));
         }
         
-        var rolesProperty = service.GetType().GetProperty("Roles");
-
-        if (rolesProperty == null)
-        {
-            throw new InvalidOperationException($"No Roles property found in update for entity {entity}");
-        }
-
-        var roles = rolesProperty.GetValue(rolesProperty, null);
+        var roles = GetPropertyValue(service, "Roles");
 
         if (roles != null)
         {
@@ -249,14 +227,7 @@ public sealed class StorageManager
             throw new ArgumentNullException(nameof(service));
         }
 
-        var rolesProperty = service.GetType().GetProperty("Roles");
-
-        if (rolesProperty == null)
-        {
-            throw new InvalidOperationException($"No Roles property found in list for entity {entity}");
-        }
-
-        var roles = rolesProperty.GetValue(rolesProperty, null);
+        var roles = GetPropertyValue(service, "Roles");
 
         if (roles != null)
         {
@@ -319,14 +290,7 @@ public sealed class StorageManager
             throw new ArgumentNullException(nameof(service));
         }
         
-        var rolesProperty = service.GetType().GetProperty("Roles");
-
-        if (rolesProperty == null)
-        {
-            throw new InvalidOperationException($"No Roles property found in delete for entity {entity}");
-        }
-
-        var roles = rolesProperty.GetValue(rolesProperty, null);
+        var roles = GetPropertyValue(service, "Roles");
 
         if (roles != null)
         {
@@ -432,6 +396,9 @@ public sealed class StorageManager
 
         return provider.GetService(type);
     }
-
-    // Convert.ChangeType(value, type);
+    
+    private object GetPropertyValue(object src, string propName)
+    {
+        return src.GetType().GetProperty(propName).GetValue(src, null);
+    }
 }
