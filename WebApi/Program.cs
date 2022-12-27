@@ -1,7 +1,16 @@
 using MicroservicesCrudManager.Core;
+using Microsoft.Extensions.Logging.Console;
 using WebApi.Storage;
 
 var builder = WebApplication.CreateBuilder(args);
+
+using var loggerFactory = LoggerFactory.Create(configure =>
+{
+    configure.AddSimpleConsole(i => i.ColorBehavior = LoggerColorBehavior.Disabled);
+});
+
+var logger = loggerFactory.CreateLogger<Program>();
+
 builder.Services.AddScoped<StorageManager>();
 builder.Services.AddScoped<TestAdd>();
 
@@ -10,16 +19,19 @@ var app = builder.Build();
 app.MapGet("/", () => "Hello World!");
 
 app.MapPost("/api/v1/{entity}",
-    (HttpContext httpContext,  StorageManager storageManager, string entity) =>
+    (HttpContext httpContext, StorageManager storageManager, string entity) =>
     {
         try
         {
-            var result = storageManager.ActivateAdd(entity, httpContext.Request.Body.Deserialize(entity), httpContext.User);
+            var result =
+                storageManager.ActivateAdd(entity, httpContext.Request.Body.Deserialize(entity), httpContext.User);
 
             return Results.Created($"/api/v1/{entity}", result);
         }
         catch (Exception ex)
         {
+            logger.LogError(ex, ex.Message);
+            
             return ex switch
             {
                 ArgumentException => Results.BadRequest(ex.Message),
@@ -34,12 +46,15 @@ app.MapPut("/api/v1/{entity}/{id}",
     {
         try
         {
-            var result = storageManager.ActivateUpdate(entity, id, httpContext.Request.Body.Deserialize(entity), httpContext.User);
+            var result = storageManager.ActivateUpdate(entity, id, httpContext.Request.Body.Deserialize(entity),
+                httpContext.User);
 
             return Results.Ok(result);
         }
         catch (Exception ex)
         {
+            logger.LogError(ex, ex.Message);
+
             return ex switch
             {
                 ArgumentException => Results.BadRequest(ex.Message),
@@ -60,6 +75,8 @@ app.MapDelete("/api/v1/{entity}/{id}",
         }
         catch (Exception ex)
         {
+            logger.LogError(ex, ex.Message);
+
             return ex switch
             {
                 ArgumentException => Results.BadRequest(ex.Message),
@@ -80,6 +97,8 @@ app.MapGet("/api/v1/{entity}/{id}",
         }
         catch (Exception ex)
         {
+            logger.LogError(ex, ex.Message);
+
             return ex switch
             {
                 ArgumentException => Results.BadRequest(ex.Message),
@@ -102,6 +121,8 @@ app.MapGet("/api/v1/{entity}/{page:int}/{limit:int}/{query}/{orderBy}/{ascending
         }
         catch (Exception ex)
         {
+            logger.LogError(ex, ex.Message);
+
             return ex switch
             {
                 ArgumentException => Results.BadRequest(ex.Message),
