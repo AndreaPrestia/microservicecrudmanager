@@ -5,7 +5,6 @@ namespace WebApi.Storage;
 
 public class TestDelete : IDelete<TestEntity, string>
 {
-    public string Roles { get; }
     public void Delete(string id)
     {
         Console.WriteLine($"Delete entity {id}");

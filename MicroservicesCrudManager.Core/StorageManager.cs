@@ -1,4 +1,7 @@
-﻿using System.Security.Claims;
+﻿using System.Reflection;
+using System.Security.Claims;
+using System.Security.Principal;
+using MicroservicesCrudManager.Core.Attributes;
 using MicroservicesCrudManager.Core.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -43,15 +46,7 @@ public sealed class StorageManager
             throw new ArgumentNullException(nameof(service));
         }
 
-        var roles = GetPropertyValue(service, "Roles");
-
-        if (roles != null)
-        {
-            if (!claimsPrincipal.IsInRole(roles.ToString()))
-            {
-                throw new UnauthorizedAccessException($"Not authorized to entity {entity} Add");
-            }
-        }
+        AuthorizeService(service, claimsPrincipal, entity);
 
         var addMethod = service.GetType().GetMethods().Where(t => t.Name.Equals("Add")
                                                                   && t.ReturnParameter.ParameterType.Name.Equals(
@@ -107,15 +102,7 @@ public sealed class StorageManager
             throw new ArgumentNullException(nameof(service));
         }
 
-        var roles = GetPropertyValue(service, "Roles");
-
-        if (roles != null)
-        {
-            if (!claimsPrincipal.IsInRole(roles.ToString()))
-            {
-                throw new UnauthorizedAccessException($"Not authorized to entity {entity} Update");
-            }
-        }
+        AuthorizeService(service, claimsPrincipal, entity);
 
         var method = service.GetType().GetMethods().Where(t => t.Name.Equals("Update")
                                                                && t.ReturnParameter.ParameterType.Name
@@ -168,16 +155,8 @@ public sealed class StorageManager
         {
             throw new ArgumentNullException(nameof(service));
         }
-        
-        var roles = GetPropertyValue(service, "Roles");
 
-        if (roles != null)
-        {
-            if (!claimsPrincipal.IsInRole(roles.ToString()))
-            {
-                throw new UnauthorizedAccessException($"Not authorized to entity {entity} Updated");
-            }
-        }
+        AuthorizeService(service, claimsPrincipal, entity);
 
         var method = service.GetType().GetMethods().Where(t => t.Name.Equals("Get")
                                                                && t.ReturnParameter.ParameterType.Name
@@ -196,12 +175,13 @@ public sealed class StorageManager
                 $"No implementation of method {entity} Get({entity} entity)");
         }
 
-        var result = method.Invoke(method, new[] { id });
+        var result = method.Invoke(method, new object?[] { id });
 
         return result;
     }
 
-    public object? ActivateList(string entity, ClaimsPrincipal claimsPrincipal, int page = 0, int limit = 10, string? query = null,
+    public object? ActivateList(string entity, ClaimsPrincipal claimsPrincipal, int page = 0, int limit = 10,
+        string? query = null,
         string? orderBy = null, bool ascending = false)
     {
         if (entity == null) throw new ArgumentNullException(nameof(entity));
@@ -227,16 +207,8 @@ public sealed class StorageManager
             throw new ArgumentNullException(nameof(service));
         }
 
-        var roles = GetPropertyValue(service, "Roles");
+        AuthorizeService(service, claimsPrincipal, entity);
 
-        if (roles != null)
-        {
-            if (!claimsPrincipal.IsInRole(roles.ToString()))
-            {
-                throw new UnauthorizedAccessException($"Not authorized to entity {entity} List");
-            }
-        }
-        
         var method = service.GetType().GetMethods().Where(t => t.Name.Equals("List")
                                                                && t.ReturnParameter.ParameterType.Name
                                                                    .Equals(
@@ -289,16 +261,8 @@ public sealed class StorageManager
         {
             throw new ArgumentNullException(nameof(service));
         }
-        
-        var roles = GetPropertyValue(service, "Roles");
 
-        if (roles != null)
-        {
-            if (!claimsPrincipal.IsInRole(roles.ToString()))
-            {
-                throw new UnauthorizedAccessException($"Not authorized to entity {entity} Delete");
-            }
-        }
+        AuthorizeService(service, claimsPrincipal, entity);
 
         var method = service.GetType().GetMethods().Where(t => t.Name.Equals("Delete")
                                                                && t.ReturnParameter.ParameterType.Name
@@ -322,18 +286,19 @@ public sealed class StorageManager
         return result;
     }
 
-    private Type? GetEntityType(string entity)
+    private static Type? GetEntityType(string entity)
     {
         return AppDomain.CurrentDomain.GetAssemblies()
             .First(x => x.GetName().Name == AppDomain.CurrentDomain.FriendlyName).GetTypes()
             .FirstOrDefault(x => x.Name.Equals(entity));
     }
 
-    private Type GetAddType(Type entityType)
+    private static Type GetAddType(Type entityType)
     {
-        var typeOfId = entityType.GetProperty("Id").PropertyType;
-        
-        var constructed = typeof(IAdd<,>).MakeGenericType(entityType, typeOfId);
+        var typeOfId = entityType.GetProperty("Id")?.PropertyType;
+
+        var constructed =
+            typeof(IAdd<,>).MakeGenericType(entityType, typeOfId ?? throw new InvalidOperationException());
 
         return AppDomain.CurrentDomain.GetAssemblies()
             .First(x => x.GetName().Name == AppDomain.CurrentDomain.FriendlyName).GetTypes().Where(t =>
@@ -341,11 +306,12 @@ public sealed class StorageManager
                 t).FirstOrDefault()!;
     }
 
-    private Type GetListType(Type entityType)
+    private static Type GetListType(Type entityType)
     {
-        var typeOfId = entityType.GetProperty("Id").PropertyType;
+        var typeOfId = entityType.GetProperty("Id")?.PropertyType;
 
-        var constructed = typeof(IList<,>).MakeGenericType(entityType, typeOfId);
+        var constructed =
+            typeof(IList<,>).MakeGenericType(entityType, typeOfId ?? throw new InvalidOperationException());
 
         return AppDomain.CurrentDomain.GetAssemblies()
             .First(x => x.GetName().Name == AppDomain.CurrentDomain.FriendlyName).GetTypes().Where(t =>
@@ -353,11 +319,12 @@ public sealed class StorageManager
                 t).FirstOrDefault()!;
     }
 
-    private Type GetGetType(Type entityType)
+    private static Type GetGetType(Type entityType)
     {
-        var typeOfId = entityType.GetProperty("Id").PropertyType;
+        var typeOfId = entityType.GetProperty("Id")?.PropertyType;
 
-        var constructed = typeof(IGet<,>).MakeGenericType(entityType, typeOfId);
+        var constructed =
+            typeof(IGet<,>).MakeGenericType(entityType, typeOfId ?? throw new InvalidOperationException());
 
         return AppDomain.CurrentDomain.GetAssemblies()
             .First(x => x.GetName().Name == AppDomain.CurrentDomain.FriendlyName).GetTypes().Where(t =>
@@ -365,11 +332,12 @@ public sealed class StorageManager
                 t).FirstOrDefault()!;
     }
 
-    private Type GetDeleteType(Type entityType)
+    private static Type GetDeleteType(Type entityType)
     {
-        var typeOfId = entityType.GetProperty("Id").PropertyType;
+        var typeOfId = entityType.GetProperty("Id")?.PropertyType;
 
-        var constructed = typeof(IDelete<,>).MakeGenericType(entityType, typeOfId);
+        var constructed =
+            typeof(IDelete<,>).MakeGenericType(entityType, typeOfId ?? throw new InvalidOperationException());
 
         return AppDomain.CurrentDomain.GetAssemblies()
             .First(x => x.GetName().Name == AppDomain.CurrentDomain.FriendlyName).GetTypes().Where(t =>
@@ -377,11 +345,12 @@ public sealed class StorageManager
                 t).FirstOrDefault()!;
     }
 
-    private Type GetUpdateType(Type entityType)
+    private static Type GetUpdateType(Type entityType)
     {
-        var typeOfId = entityType.GetProperty("Id").PropertyType;
+        var typeOfId = entityType.GetProperty("Id")?.PropertyType;
 
-        var constructed = typeof(IUpdate<,>).MakeGenericType(entityType, typeOfId);
+        var constructed =
+            typeof(IUpdate<,>).MakeGenericType(entityType, typeOfId ?? throw new InvalidOperationException());
 
         return AppDomain.CurrentDomain.GetAssemblies()
             .First(x => x.GetName().Name == AppDomain.CurrentDomain.FriendlyName).GetTypes().Where(t =>
@@ -396,9 +365,23 @@ public sealed class StorageManager
 
         return provider.GetService(type);
     }
-    
-    private object GetPropertyValue(object src, string propName)
+
+    private static AuthorizeService? GetAuthorizeServiceAttribute(object src)
     {
-        return src.GetType().GetProperty(propName).GetValue(src, null);
+        return src.GetType().GetCustomAttribute(typeof(AuthorizeService)) as AuthorizeService;
+    }
+
+    private static void AuthorizeService(object service, IPrincipal claimsPrincipal, string entity)
+    {
+        var authorizeServiceAttribute = GetAuthorizeServiceAttribute(service);
+
+        if (authorizeServiceAttribute == null) return;
+
+        if (string.IsNullOrWhiteSpace(authorizeServiceAttribute.Roles)) return;
+
+        if (!claimsPrincipal.IsInRole(authorizeServiceAttribute.Roles))
+        {
+            throw new UnauthorizedAccessException($"Not authorized to entity {entity} Add");
+        }
     }
 }

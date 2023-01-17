@@ -3,11 +3,11 @@ using WebApi.Storage;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.AddMscm();
+builder.AddMcm();
 builder.Services.AddScoped<TestAdd>();
 
 var app = builder.Build();
 
-app.MapMscmEndpoints();
+app.MapMcmEndpoints();
 
 app.Run();

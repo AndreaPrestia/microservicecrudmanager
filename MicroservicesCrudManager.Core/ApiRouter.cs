@@ -7,7 +7,7 @@ namespace MicroservicesCrudManager.Core;
 
 internal sealed class ApiRouter
 {
-    internal void Init(WebApplication app)
+    internal static void Init(WebApplication app)
     {
         using var loggerFactory = LoggerFactory.Create(configure =>
         {
@@ -16,7 +16,7 @@ internal sealed class ApiRouter
 
         var logger = loggerFactory.CreateLogger<ApiRouter>();
 
-        app.MapGet("/", () => "Mscm is up and running :)");
+        app.MapGet("/", () => "Mcm is up and running :)");
 
         app.MapPost("/api/v1/{entity}",
             (HttpContext httpContext, StorageManager storageManager, string entity) =>

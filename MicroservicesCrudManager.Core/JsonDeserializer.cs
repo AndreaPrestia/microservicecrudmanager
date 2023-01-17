@@ -12,7 +12,7 @@ public static class JsonDeserializer
         PropertyNameCaseInsensitive = true
     };
 
-    public static object? Deserialize(this Stream stream, string entity)  
+    public static object Deserialize(this Stream stream, string entity)  
     {
         var entityType = AppDomain.CurrentDomain.GetAssemblies()
             .First(x => x.GetName().Name == AppDomain.CurrentDomain.FriendlyName).GetTypes()
