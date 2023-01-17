@@ -1,5 +1,5 @@
 # microservicecrudmanager
-A little experiment to use minimal API to implement various operation with one endpoint for HTTP verb that manages every entity.
+A little experiment to use only 5 minimal API endpoint to manage CRUD operations by entity name specified in the query string.
 
 What is the idea behind this?
 
