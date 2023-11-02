@@ -1,11 +1,11 @@
 ﻿using System.Reflection;
 using System.Security.Claims;
 using System.Security.Principal;
-using MicroservicesCrudManager.Core.Attributes;
-using MicroservicesCrudManager.Core.Interfaces;
+using MicroServicesCrudManager.Core.Attributes;
+using MicroServicesCrudManager.Core.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace MicroservicesCrudManager.Core;
+namespace MicroServicesCrudManager.Core;
 
 public sealed class StorageManager
 {
@@ -18,33 +18,14 @@ public sealed class StorageManager
 
     public object? ActivateAdd(string entity, object? payload, ClaimsPrincipal claimsPrincipal)
     {
-        if (entity == null) throw new ArgumentNullException(nameof(entity));
+        ArgumentNullException.ThrowIfNull(entity);
+        ArgumentNullException.ThrowIfNull(payload);
 
-        if (payload == null)
-        {
-            throw new ArgumentNullException($"No payload provided in /api/v1/{entity} POST");
-        }
+        var entityType = GetEntityType(entity) ?? throw new InvalidOperationException($"Entity {entity} invalid");
 
-        var entityType = GetEntityType(entity);
+        var type = GetAddType(entityType) ?? throw new InvalidOperationException($"No IAdd<{entity}> implementation found");
 
-        if (entityType == null)
-        {
-            throw new InvalidOperationException($"Entity {entity} invalid");
-        }
-
-        var addType = GetAddType(entityType);
-
-        if (addType == null)
-        {
-            throw new InvalidOperationException($"No IAdd<{entity}> implementation found");
-        }
-
-        var service = GetService(addType);
-
-        if (service == null)
-        {
-            throw new ArgumentNullException(nameof(service));
-        }
+        var service = GetService(type) ?? throw new ArgumentNullException($"No service activated for entity {entity}");
 
         AuthorizeService(service, claimsPrincipal, entity);
 
@@ -55,12 +36,7 @@ public sealed class StorageManager
                                                                   t.GetParameters().FirstOrDefault()!.ParameterType
                                                                       .Name.Equals(entity)
             ).Select(x => x)
-            .FirstOrDefault();
-
-        if (addMethod == null)
-        {
-            throw new EntryPointNotFoundException($"No implementation of method {entity} Add({entity} entity)");
-        }
+            .FirstOrDefault() ?? throw new EntryPointNotFoundException($"No implementation of method {entity} Add({entity} entity)");
 
         var result = addMethod.Invoke(service, new[] { payload });
 
@@ -69,38 +45,15 @@ public sealed class StorageManager
 
     public object? ActivateUpdate(string entity, string id, object? payload, ClaimsPrincipal claimsPrincipal)
     {
-        if (entity == null) throw new ArgumentNullException(nameof(entity));
+        ArgumentNullException.ThrowIfNull(entity);
+        ArgumentException.ThrowIfNullOrEmpty(id);
+        ArgumentNullException.ThrowIfNull(payload);
 
-        if (string.IsNullOrWhiteSpace(id))
-        {
-            throw new ArgumentNullException($"No id provided in /api/v1/{entity}/?id= PUT");
-        }
+        var entityType = GetEntityType(entity) ?? throw new InvalidOperationException($"Entity {entity} invalid");
 
-        if (payload == null)
-        {
-            throw new ArgumentNullException($"No payload provided in /api/v1/{entity}/?id= PUT");
-        }
+        var type = GetUpdateType(entityType) ?? throw new InvalidOperationException($"No IUpdate<{entity}> implementation found");
 
-        var entityType = GetEntityType(entity);
-
-        if (entityType == null)
-        {
-            throw new InvalidOperationException($"Entity {entity} invalid");
-        }
-
-        var type = GetUpdateType(entityType);
-
-        if (type == null)
-        {
-            throw new InvalidOperationException($"No IUpdate<{entity}> implementation found");
-        }
-
-        var service = GetService(type);
-
-        if (service == null)
-        {
-            throw new ArgumentNullException(nameof(service));
-        }
+        var service = GetService(type) ?? throw new ArgumentNullException($"No service activated for entity {entity}");
 
         AuthorizeService(service, claimsPrincipal, entity);
 
@@ -113,13 +66,8 @@ public sealed class StorageManager
                                                                    .ParameterType
                                                                    .Name.Equals(entity)
             ).Select(x => x)
-            .FirstOrDefault();
-
-        if (method == null)
-        {
-            throw new EntryPointNotFoundException(
-                $"No implementation of method {entity} Update({entity} entity)");
-        }
+            .FirstOrDefault() ?? throw new EntryPointNotFoundException(
+            $"No implementation of method {entity} Update({entity} entity)");
 
         var result = method.Invoke(method, new[] { id, payload });
 
@@ -128,34 +76,15 @@ public sealed class StorageManager
 
     public object? ActivateGet(string entity, string id, ClaimsPrincipal claimsPrincipal)
     {
-        if (entity == null) throw new ArgumentNullException(nameof(entity));
+        ArgumentNullException.ThrowIfNull(entity);
+        ArgumentException.ThrowIfNullOrEmpty(id);
 
-        if (string.IsNullOrWhiteSpace(id))
-        {
-            throw new ArgumentNullException($"No id provided in /api/v1/{entity}/?id= PUT");
-        }
+        var entityType = GetEntityType(entity) ?? throw new InvalidOperationException($"Entity {entity} invalid");
 
-        var entityType = GetEntityType(entity);
+        var type = GetGetType(entityType) ?? throw new InvalidOperationException($"No IGet<{entity}> implementation found");
 
-        if (entityType == null)
-        {
-            throw new InvalidOperationException($"Entity {entity} invalid");
-        }
-
-        var type = GetGetType(entityType);
-
-        if (type == null)
-        {
-            throw new InvalidOperationException($"No IGet<{entity}> implementation found");
-        }
-
-        var service = GetService(type);
-
-        if (service == null)
-        {
-            throw new ArgumentNullException(nameof(service));
-        }
-
+        var service = GetService(type) ?? throw new ArgumentNullException($"No service activated for entity {entity}");
+    
         AuthorizeService(service, claimsPrincipal, entity);
 
         var method = service.GetType().GetMethods().Where(t => t.Name.Equals("Get")
@@ -167,13 +96,8 @@ public sealed class StorageManager
                                                                    .ParameterType
                                                                    .Name.Equals(entity)
             ).Select(x => x)
-            .FirstOrDefault();
-
-        if (method == null)
-        {
-            throw new EntryPointNotFoundException(
-                $"No implementation of method {entity} Get({entity} entity)");
-        }
+            .FirstOrDefault() ?? throw new EntryPointNotFoundException(
+            $"No implementation of method {entity} Get({entity} entity)");
 
         var result = method.Invoke(method, new object?[] { id });
 
@@ -184,28 +108,13 @@ public sealed class StorageManager
         string? query = null,
         string? orderBy = null, bool ascending = false)
     {
-        if (entity == null) throw new ArgumentNullException(nameof(entity));
+        ArgumentNullException.ThrowIfNull(entity);
 
-        var entityType = GetEntityType(entity);
+        var entityType = GetEntityType(entity) ?? throw new InvalidOperationException($"Entity {entity} invalid");
 
-        if (entityType == null)
-        {
-            throw new InvalidOperationException($"Entity {entity} invalid");
-        }
+        var type = GetListType(entityType) ?? throw new InvalidOperationException($"No IList<{entity}> implementation found");
 
-        var type = GetListType(entityType);
-
-        if (type == null)
-        {
-            throw new InvalidOperationException($"No IList<{entity}> implementation found");
-        }
-
-        var service = GetService(type);
-
-        if (service == null)
-        {
-            throw new ArgumentNullException(nameof(service));
-        }
+        var service = GetService(type) ?? throw new ArgumentNullException($"No service activated for entity {entity}");
 
         AuthorizeService(service, claimsPrincipal, entity);
 
@@ -218,13 +127,8 @@ public sealed class StorageManager
                                                                    .ParameterType
                                                                    .Name.Equals(entity)
             ).Select(x => x)
-            .FirstOrDefault();
-
-        if (method == null)
-        {
-            throw new EntryPointNotFoundException(
-                $"No implementation of method List<{entity}> List({entity} entity)");
-        }
+            .FirstOrDefault() ?? throw new EntryPointNotFoundException(
+            $"No implementation of method List<{entity}> List({entity} entity)");
 
         var result = method.Invoke(method, new object?[] { page, limit, query, orderBy, ascending });
 
@@ -234,33 +138,14 @@ public sealed class StorageManager
 
     public object? ActivateDelete(string entity, string id, ClaimsPrincipal claimsPrincipal)
     {
-        if (entity == null) throw new ArgumentNullException(nameof(entity));
+        ArgumentNullException.ThrowIfNull(entity);
+        ArgumentException.ThrowIfNullOrEmpty(id);
 
-        if (string.IsNullOrWhiteSpace(id))
-        {
-            throw new ArgumentNullException($"No id provided in /api/v1/{entity}/?id= DELETE");
-        }
+        var entityType = GetEntityType(entity) ?? throw new InvalidOperationException($"Entity {entity} invalid");
 
-        var entityType = GetEntityType(entity);
+        var type = GetDeleteType(entityType) ?? throw new InvalidOperationException($"No IDelete<{entity}> implementation found");
 
-        if (entityType == null)
-        {
-            throw new InvalidOperationException($"Entity {entity} invalid");
-        }
-
-        var addType = GetDeleteType(entityType);
-
-        if (addType == null)
-        {
-            throw new InvalidOperationException($"No IDelete<{entity}> implementation found");
-        }
-
-        var service = GetService(addType);
-
-        if (service == null)
-        {
-            throw new ArgumentNullException(nameof(service));
-        }
+        var service = GetService(type) ?? throw new ArgumentNullException($"No service activated for entity {entity}");
 
         AuthorizeService(service, claimsPrincipal, entity);
 
@@ -273,25 +158,16 @@ public sealed class StorageManager
                                                                    .ParameterType
                                                                    .Name.Equals(entity)
             ).Select(x => x)
-            .FirstOrDefault();
-
-        if (method == null)
-        {
-            throw new EntryPointNotFoundException(
-                $"No implementation of method {entity} Delete({entity} entity)");
-        }
+            .FirstOrDefault() ?? throw new EntryPointNotFoundException(
+            $"No implementation of method {entity} Delete({entity} entity)");
 
         var result = method.Invoke(method, new object?[] { id });
 
         return result;
     }
 
-    private static Type? GetEntityType(string entity)
-    {
-        return AppDomain.CurrentDomain.GetAssemblies()
-            .First(x => x.GetName().Name == AppDomain.CurrentDomain.FriendlyName).GetTypes()
-            .FirstOrDefault(x => x.Name.Equals(entity));
-    }
+    private static Type? GetEntityType(string entity) => AppDomain.CurrentDomain.GetAssemblies().First(x => x.GetName().Name == AppDomain.CurrentDomain.FriendlyName).GetTypes()
+            .FirstOrDefault(x => x.BaseType == typeof(BaseEntity<>) && x.GetCustomAttributes<EntityNameAttribute>().Any(et => et.Name == entity));
 
     private static Type GetAddType(Type entityType)
     {
@@ -381,7 +257,7 @@ public sealed class StorageManager
 
         if (!claimsPrincipal.IsInRole(authorizeServiceAttribute.Roles))
         {
-            throw new UnauthorizedAccessException($"Not authorized to entity {entity} Add");
+            throw new UnauthorizedAccessException($"Not authorized to {entity}");
         }
     }
 }

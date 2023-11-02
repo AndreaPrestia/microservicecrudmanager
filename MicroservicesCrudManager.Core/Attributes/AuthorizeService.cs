@@ -1,4 +1,4 @@
-﻿namespace MicroservicesCrudManager.Core.Attributes;
+﻿namespace MicroServicesCrudManager.Core.Attributes;
 
 [AttributeUsage(AttributeTargets.All, Inherited = false, AllowMultiple = true)]
 public sealed class AuthorizeService : Attribute

@@ -1,4 +1,4 @@
-﻿using MicroservicesCrudManager.Core.Interfaces;
+﻿using MicroServicesCrudManager.Core.Interfaces;
 using WebApi.Entities;
 
 namespace WebApi.Storage;

@@ -1,4 +1,4 @@
-using MicroservicesCrudManager.Core;
+using MicroServicesCrudManager.Core;
 using WebApi.Storage;
 
 var builder = WebApplication.CreateBuilder(args);

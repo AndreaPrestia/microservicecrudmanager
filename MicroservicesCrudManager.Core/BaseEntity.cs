@@ -1,4 +1,4 @@
-﻿namespace MicroservicesCrudManager.Core;
+﻿namespace MicroServicesCrudManager.Core;
 
 public abstract class BaseEntity<T>
 {
